@@ -17,6 +17,8 @@ struct Kinect
 	xn::DepthGenerator  depth;
 	IplImage*           camera;
 	xn::MapGenerator*   generator;
+
+	Kinect() : camera( 0 ), generator( 0 ) {}
 };
 
 // デプスのヒストグラムを作成
@@ -24,6 +26,10 @@ typedef std::vector<float> depth_hist;
 depth_hist getDepthHistgram(const xn::DepthGenerator& depth,
 	const xn::DepthMetaData& depthMD)
 {
+	if ( !depth.IsValid() ) {
+		return depth_hist();
+	}
+
 	// デプスの傾向を計算する(アルゴリズムはNiSimpleViewer.cppを利用)
 	const int MAX_DEPTH = depth.GetDeviceMaxDepth();
 	depth_hist depthHist(MAX_DEPTH);
@@ -162,8 +168,11 @@ int main (int argc, char * argv[])
 		for (std::map<int, Kinect>::iterator it = kinect.begin(); it != kinect.end(); ++it) {
 			int no = it->first;
 			Kinect& k = it->second;
-			k.depth.GetAlternativeViewPointCap().SetViewPoint(*k.generator);
+			if ( k.generator == 0 ) {
+				continue;
+			}
 
+			k.depth.GetAlternativeViewPointCap().SetViewPoint(*k.generator);
 
 			::cvNamedWindow( k.generator->GetName() );
 			::cvResizeWindow( k.generator->GetName(), OUTPUT_MODE.nXRes, OUTPUT_MODE.nYRes );
@@ -184,6 +193,9 @@ int main (int argc, char * argv[])
 			// 検出したすべてのKinectの画像を表示する
 			for (std::map<int, Kinect>::iterator it = kinect.begin(); it != kinect.end(); ++it) {
 				Kinect& k = it->second;
+				if ( k.generator == 0 ) {
+					continue;
+				}
 
 				xn::ImageMetaData imageMD;
 				if ( k.image.IsValid() ) {
@@ -198,13 +210,13 @@ int main (int argc, char * argv[])
 				// デプスマップの作成
 				depth_hist depthHist = getDepthHistgram(k.depth, depthMD);
 
-				// イメージをデプスマップで上書きする
+				// イメージとデプスマップを描画する
 				XnRGB24Pixel* rgb = (XnRGB24Pixel*)k.camera->imageData;
 				for (XnUInt y = 0; y < k.camera->height; ++y) {
 					for (XnUInt x = 0; x < k.camera->width; ++x, ++rgb) {
-						const XnDepthPixel& depth = depthMD(x, y);
+						// デプスマップまたはイメージを描画する
 						XnRGB24Pixel& pixel = *rgb;
-						if (depth != 0) {
+						if ( k.depth.IsValid() && (depthMD(x, y) != 0) ) {
 							pixel.nRed   = depthHist[depthMD(x, y)];
 							pixel.nGreen = depthHist[depthMD(x, y)];
 							pixel.nBlue  = 0;
