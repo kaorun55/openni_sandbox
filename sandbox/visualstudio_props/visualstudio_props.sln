@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "openni_opencv21", "openni_opencv21\openni_opencv21.vcxproj", "{896B7B67-F53F-4F08-B307-A8B4AA0CD49E}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "openni_opencv23", "openni_opencv23\openni_opencv23.vcxproj", "{AB04AE31-D1AB-45E1-82F5-0271CB22F35C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{896B7B67-F53F-4F08-B307-A8B4AA0CD49E}.Debug|Win32.ActiveCfg = Debug|Win32
+		{896B7B67-F53F-4F08-B307-A8B4AA0CD49E}.Debug|Win32.Build.0 = Debug|Win32
+		{896B7B67-F53F-4F08-B307-A8B4AA0CD49E}.Release|Win32.ActiveCfg = Release|Win32
+		{896B7B67-F53F-4F08-B307-A8B4AA0CD49E}.Release|Win32.Build.0 = Release|Win32
+		{AB04AE31-D1AB-45E1-82F5-0271CB22F35C}.Debug|Win32.ActiveCfg = Debug|Win32
+		{AB04AE31-D1AB-45E1-82F5-0271CB22F35C}.Debug|Win32.Build.0 = Debug|Win32
+		{AB04AE31-D1AB-45E1-82F5-0271CB22F35C}.Release|Win32.ActiveCfg = Release|Win32
+		{AB04AE31-D1AB-45E1-82F5-0271CB22F35C}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
