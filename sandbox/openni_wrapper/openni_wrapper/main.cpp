@@ -10,6 +10,7 @@
 #include <XnCppWrapper.h>
 
 const char* CONFIG_XML_PATH = "SamplesConfig.xml";
+const char* RECORDE_PATH = "record.oni";
 
 // ユーザーの色づけ
 const XnFloat Colors[][3] =
@@ -103,14 +104,50 @@ inline XnRGB24Pixel xnRGB24Pixel( int r, int g, int b )
 
 int main (int argc, char * argv[])
 {
+    XnStatus rc;
     IplImage* camera = 0;
 
     try {
-        // コンテキストの初期化
         xn::Context context;
-        XnStatus rc = context.InitFromXmlFile(CONFIG_XML_PATH);
-        if (rc != XN_STATUS_OK) {
-            throw std::runtime_error(xnGetStatusString(rc));
+        xn::Recorder recorder;
+        xn::Player player;
+
+        if ( argc == 1 ) {
+            // コンテキストの初期化
+            rc = context.InitFromXmlFile(CONFIG_XML_PATH);
+            if (rc != XN_STATUS_OK) {
+                throw std::runtime_error(xnGetStatusString(rc));
+            }
+
+            // レコーダーの作成
+            rc = recorder.Create(context);
+            if (rc != XN_STATUS_OK) {
+                throw std::runtime_error(xnGetStatusString(rc));
+            }
+
+            // 記録設定
+            rc = recorder.SetDestination(XN_RECORD_MEDIUM_FILE, RECORDE_PATH);
+            if (rc != XN_STATUS_OK) {
+                throw std::runtime_error(xnGetStatusString(rc));
+            }
+        }
+        else {
+            rc = context.Init();
+            if (rc != XN_STATUS_OK) {
+              throw std::runtime_error(xnGetStatusString(rc));
+            }
+
+            // 記録されたファイルを開く
+            rc = context.OpenFileRecording(argv[1]);
+            if (rc != XN_STATUS_OK) {
+              throw std::runtime_error(xnGetStatusString(rc));
+            }
+
+            // プレーヤーの作成
+            rc = context.FindExistingNode(XN_NODE_TYPE_PLAYER, player);
+            if (rc != XN_STATUS_OK) {
+              throw std::runtime_error(xnGetStatusString(rc));
+            }
         }
 
         // イメージジェネレータの作成
@@ -135,7 +172,10 @@ int main (int argc, char * argv[])
         User user;
         rc = context.FindExistingNode( XN_NODE_TYPE_USER, user.GetUserGenerator() );
         if ( rc != XN_STATUS_OK ) {
-            throw std::runtime_error( xnGetStatusString( rc ) );
+            rc = user.GetUserGenerator().Create( context );
+            if ( rc != XN_STATUS_OK ) {
+                throw std::runtime_error( xnGetStatusString( rc ) );
+            }
         }
 
         // ユーザー検出機能をサポートしているか確認
@@ -146,6 +186,27 @@ int main (int argc, char * argv[])
         // ユーザー認識のコールバックを登録
         App app;
         user.RegisterCallback( &app );
+
+        if ( recorder.IsValid() ) {
+            // イメージを記録対象に追加
+            rc = recorder.AddNodeToRecording(image, XN_CODEC_JPEG);
+            if (rc != XN_STATUS_OK) {
+                throw std::runtime_error(xnGetStatusString(rc));
+            }
+        
+            // デプスを記録対象に追加
+            rc = recorder.AddNodeToRecording(depth, XN_CODEC_UNCOMPRESSED);
+            if (rc != XN_STATUS_OK) {
+                std::cout << __LINE__ << std::endl;
+                throw std::runtime_error(xnGetStatusString(rc));
+            }
+        
+            // 記録開始(WaitOneUpdateAllのタイミングで記録される)
+            rc = recorder.Record();
+            if (rc != XN_STATUS_OK) {
+                throw std::runtime_error(xnGetStatusString(rc));
+            }
+        }
 
         // ジェスチャー検出の開始
         context.StartGeneratingAll();
