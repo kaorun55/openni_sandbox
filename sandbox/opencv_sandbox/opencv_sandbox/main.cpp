@@ -7,7 +7,7 @@ main (int argc, char **argv)
 {
   CvCapture *capture = 0;
   IplImage *frame = 0;
-  double w = 320, h = 240;
+  double w = 640, h = 480;
   int c;
 
   // (1)コマンド引数によって指定された番号のカメラに対するキャプチャ構造体を作成する
@@ -16,8 +16,8 @@ main (int argc, char **argv)
 
   /* この設定は，利用するカメラに依存する */
   // (2)キャプチャサイズを設定する．
-  //cvSetCaptureProperty (capture, CV_CAP_PROP_FRAME_WIDTH, w);
-  //cvSetCaptureProperty (capture, CV_CAP_PROP_FRAME_HEIGHT, h);
+  cvSetCaptureProperty (capture, CV_CAP_PROP_FRAME_WIDTH, w);
+  cvSetCaptureProperty (capture, CV_CAP_PROP_FRAME_HEIGHT, h);
 
   cvNamedWindow ("Capture", CV_WINDOW_AUTOSIZE);
 
