@@ -63,3 +63,5 @@ protected:
     XnCallbackHandle userCallbacks_;
 };
 
+
+

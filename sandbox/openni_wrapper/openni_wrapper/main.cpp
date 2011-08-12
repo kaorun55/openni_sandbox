@@ -9,6 +9,9 @@
 #include <XnCppWrapper.h>
 #include "User.h"
 #include "Pose.h"
+#include "Skeleton.h"
+
+#include "SkeltonDrawer.h"
 
 const char* CONFIG_XML_PATH = "SamplesConfig.xml";
 const char* RECORDE_PATH = "record.oni";
@@ -24,25 +27,29 @@ const XnFloat Colors[][3] =
 };
 
 class App : public UserCallback,
-            public PoseCallback
+            public PoseCallback,
+            public SkeletonCallback
 {
 public:
 
     App()
         : isShowImage( true )
         , isShowUser( true )
+        , isShowSkeleton( true )
     {
     }
 
     App( const std::string& xmlFileName, const std::string& recordFileName )
         : isShowImage( true )
         , isShowUser( true )
+        , isShowSkeleton( true )
     {
     }
 
     App( const std::string& recordFileName )
         : isShowImage( true )
         , isShowUser( true )
+        , isShowSkeleton( true )
     {
     }
 
@@ -105,7 +112,7 @@ public:
 
             // ユーザーデータの取得
             xn::SceneMetaData sceneMD;
-            user.GetUserGenerator().GetUserPixels(0, sceneMD);
+            user.GetUserGenerator().GetUserPixels( 0, sceneMD );
 
             // カメラ画像の表示
             char* dest = camera->imageData;
@@ -129,6 +136,19 @@ public:
                     dest[1] = pixel.nGreen * Colors[label][1];
                     dest[2] = pixel.nBlue  * Colors[label][2];
                     dest += 3;
+                }
+            }
+
+            // スケルトンの描画
+            if ( isShowSkeleton ) {
+                XnUserID users[15];
+                XnUInt16 userCount = sizeof(users) / sizeof(users[0]);
+                user.GetUserGenerator().GetUsers( users, userCount );
+                for ( int i = 0; i < userCount; ++i ) {
+                    if (skeleton.GetSkeletonCapability().IsTracking( users[i] ) ) {
+                        SkeltonDrawer skeltonDrawer( camera, skeleton.GetSkeletonCapability(), depth, users[i] );
+                        skeltonDrawer.draw();
+                    }
                 }
             }
 
@@ -187,8 +207,8 @@ protected:
 
 
         // キャリブレーションにポーズが必要
-        xn::SkeletonCapability skelton = user.GetUserGenerator().GetSkeletonCap();
-        if ( skelton.NeedPoseForCalibration() ) {
+        skeleton.SetSkeletonCapability( user.GetUserGenerator().GetSkeletonCap() );
+        if ( skeleton.GetSkeletonCapability().NeedPoseForCalibration() ) {
             // ポーズ検出のサポートチェック
             if ( !user.GetUserGenerator().IsCapabilitySupported( XN_CAPABILITY_POSE_DETECTION ) ) {
                 throw std::runtime_error( "ポーズ検出をサポートしてません" );
@@ -196,7 +216,7 @@ protected:
 
             // キャリブレーションポーズの取得
             XnChar p[20] = "";
-            skelton.GetCalibrationPose( p );
+            skeleton.GetSkeletonCapability().GetCalibrationPose( p );
             poseName = p;
 
             // ポーズ検出のコールバックを登録
@@ -207,6 +227,11 @@ protected:
         // ユーザー認識のコールバックを登録
         user.RegisterCallback( this );
 
+        // キャリブレーションのコールバックを登録
+        skeleton.RegisterCallback( this );
+
+        // ユーザートラッキングで、すべてをトラッキングする
+        skeleton.GetSkeletonCapability().SetSkeletonProfile(XN_SKEL_PROFILE_ALL);
 
         // 記録する場合は、ジェネレータの設定
         if ( recorder.IsValid() ) {
@@ -278,6 +303,26 @@ protected:
       std::cout << "ポーズ消失:" << strPose << " ユーザー:" << nId << std::endl;
     }
 
+    // キャリブレーションの開始
+    void CalibrationStart( xn::SkeletonCapability& capability, XnUserID nId)
+    {
+      std::cout << "キャリブレーション開始。ユーザー:" << nId << std::endl;
+    }
+
+    // キャリブレーションの終了
+    void CalibrationEnd(xn::SkeletonCapability& capability, XnUserID nId, XnBool bSuccess )
+    {
+      // キャリブレーション成功
+      if (bSuccess) {
+        std::cout << "キャリブレーション成功。ユーザー:" << nId << std::endl;
+        user.GetUserGenerator().GetSkeletonCap().StartTracking( nId );
+      }
+      // キャリブレーション失敗
+      else {
+        std::cout << "キャリブレーション失敗。ユーザー:" << nId << std::endl;
+      }
+    }
+
 private:
     
     // RGBピクセルの初期化
@@ -297,6 +342,7 @@ private:
 
     User user;
     Pose pose;
+    Skeleton skeleton;
 
     cv::Ptr< IplImage >camera;
 
@@ -305,6 +351,7 @@ private:
     // 表示状態
     bool isShowImage;
     bool isShowUser;
+    bool isShowSkeleton;
 };
 
 int main (int argc, char * argv[])
