@@ -7,12 +7,12 @@
 #include <opencv2/opencv.hpp>
 
 #include <XnCppWrapper.h>
-#include "User.h"
-#include "Pose.h"
-#include "Skeleton.h"
+#include "openni/User.h"
+#include "openni/Pose.h"
+#include "openni/Skeleton.h"
 
-#include "SessionManager.h"
-#include "SwipeDetector.h"
+#include "nite/SessionManager.h"
+#include "nite/SwipeDetector.h"
 
 #include "SkeltonDrawer.h"
 
@@ -29,11 +29,11 @@ const XnFloat Colors[][3] =
     {1,1,.5},
 };
 
-class App : public UserCallback,
-            public PoseCallback,
-            public SkeletonCallback,
-            public SessionManagerCallback,
-            public SwipeDetectorCallback
+class App : public openni::UserCallback,
+            public openni::PoseCallback,
+            public openni::SkeletonCallback,
+            public nite::SessionManagerCallback,
+            public nite::SwipeDetectorCallback
 {
 public:
 
@@ -387,12 +387,12 @@ private:
     xn::ImageGenerator image;
     xn::DepthGenerator depth;
 
-    User user;
-    Pose pose;
-    Skeleton skeleton;
+    openni::User user;
+    openni::Pose pose;
+    openni::Skeleton skeleton;
 
-    SessionManager sessionManager;
-    SwipeDetector swipeDetector;
+    nite::SessionManager sessionManager;
+    nite::SwipeDetector swipeDetector;
 
     cv::Ptr< IplImage >camera;
 

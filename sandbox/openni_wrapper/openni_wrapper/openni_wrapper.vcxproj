@@ -79,12 +79,12 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Pose.h" />
-    <ClInclude Include="SessionManager.h" />
-    <ClInclude Include="Skeleton.h" />
+    <ClInclude Include="nite\SessionManager.h" />
+    <ClInclude Include="nite\SwipeDetector.h" />
+    <ClInclude Include="openni\Pose.h" />
+    <ClInclude Include="openni\Skeleton.h" />
+    <ClInclude Include="openni\User.h" />
     <ClInclude Include="SkeltonDrawer.h" />
-    <ClInclude Include="SwipeDetector.h" />
-    <ClInclude Include="User.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

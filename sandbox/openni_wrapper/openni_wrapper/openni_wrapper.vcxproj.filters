@@ -13,6 +13,12 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="opennni">
+      <UniqueIdentifier>{8b4d8e51-b030-4db5-aa38-35d30cdb5436}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="nite">
+      <UniqueIdentifier>{a0a73ed8-e993-4e91-b28d-348c5f6fabb4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -20,23 +26,23 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="User.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Pose.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Skeleton.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="SkeltonDrawer.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="SessionManager.h">
-      <Filter>ヘッダー ファイル</Filter>
+    <ClInclude Include="nite\SwipeDetector.h">
+      <Filter>nite</Filter>
     </ClInclude>
-    <ClInclude Include="SwipeDetector.h">
-      <Filter>ヘッダー ファイル</Filter>
+    <ClInclude Include="nite\SessionManager.h">
+      <Filter>nite</Filter>
+    </ClInclude>
+    <ClInclude Include="openni\Pose.h">
+      <Filter>opennni</Filter>
+    </ClInclude>
+    <ClInclude Include="openni\Skeleton.h">
+      <Filter>opennni</Filter>
+    </ClInclude>
+    <ClInclude Include="openni\User.h">
+      <Filter>opennni</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
