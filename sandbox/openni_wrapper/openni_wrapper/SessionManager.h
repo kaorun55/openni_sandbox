@@ -34,6 +34,7 @@ public:
 
     SessionManager()
         : sessionCallback_( 0 )
+        , context_( 0 )
     {
     }
 
@@ -52,6 +53,8 @@ public:
         if ( rc != XN_STATUS_OK ) {
             throw std::runtime_error( xnGetStatusString( rc ) );
         }
+
+        context_ = &context;
     }
 
     XnVSessionManager& GetSessionManager() { return sessionManager_; }
@@ -61,8 +64,15 @@ public:
         sessionCallback_ = sessionManager_.RegisterSession( callback, &SessionManagerCallback::SessionStart, &SessionManagerCallback::SessionEnd );
     }
 
+    void Update()
+    {
+        sessionManager_.Update( context_ );
+    }
+
 protected:
 
     XnVSessionManager sessionManager_;
     XnVHandle sessionCallback_;
+
+    xn::Context* context_;
 };

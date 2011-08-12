@@ -110,7 +110,7 @@ public:
         while ( 1 ) {
             // すべてのノードの更新を待つ
             context.WaitAndUpdateAll();
-            sessionManager.GetSessionManager().Update( &context );
+            sessionManager.Update();
 
             // 画像データの取得
             xn::ImageMetaData imageMD;
