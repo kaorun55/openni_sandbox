@@ -1,260 +1,205 @@
-// Windows ‚Ìê‡‚ÍReleaseƒRƒ“ƒpƒCƒ‹‚É‚·‚é‚Æ
-// Œ»À“I‚È‘¬“x‚Å“®ì‚µ‚Ü‚·
+ï»¿// Windows ã®å ´åˆã¯Releaseã‚³ãƒ³ãƒ‘ã‚¤ãƒ«ã«ã™ã‚‹ã¨
+// ç¾å®Ÿçš„ãªé€Ÿåº¦ã§å‹•ä½œã—ã¾ã™
 #include <iostream>
 #include <stdexcept>
 #include <vector>
 
-#include <opencv/cv.h>
-#include <opencv/highgui.h>
+#include <opencv2/opencv.hpp>
 
 #include <XnCppWrapper.h>
+#include "User.h"
 
 const char* CONFIG_XML_PATH = "SamplesConfig.xml";
 const char* RECORDE_PATH = "record.oni";
 
-// ƒ†[ƒU[‚ÌF‚Ã‚¯
+// ãƒ¦ãƒ¼ã‚¶ãƒ¼ã®è‰²ã¥ã‘
 const XnFloat Colors[][3] =
 {
-    {1,1,1},    // ƒ†[ƒU[‚È‚µ
+    {1,1,1},    // ãƒ¦ãƒ¼ã‚¶ãƒ¼ãªã—
     {0,1,1},  {0,0,1},  {0,1,0},
     {1,1,0},  {1,0,0},  {1,.5,0},
     {.5,1,0}, {0,.5,1}, {.5,0,1},
     {1,1,.5},
 };
 
-class UserCallback
+class PoseCallback
 {
-    friend class User;
+    friend class Pose;
 
 public:
 
-    virtual ~UserCallback(){}
+    virtual ~PoseCallback(){}
 
 protected:
 
-    static void XN_CALLBACK_TYPE Detected( xn::UserGenerator& generator, XnUserID nId, void* pCookie )
+    // ãƒãƒ¼ã‚ºæ¤œå‡º
+    static void XN_CALLBACK_TYPE PoseDetected( xn::PoseDetectionCapability& capability,
+        const XnChar* strPose, XnUserID nId, void* pCookie )
     {
-        ((UserCallback*)pCookie)->Detected( generator, nId );
+        ((PoseCallback*)pCookie)->PoseDetected( capability, strPose, nId );
     }
 
-    static void XN_CALLBACK_TYPE Lost( xn::UserGenerator& generator, XnUserID nId, void* pCookie )
+    // ãƒãƒ¼ã‚ºæ¶ˆå¤±
+    static void XN_CALLBACK_TYPE PoseLost( xn::PoseDetectionCapability& capability,
+        const XnChar* strPose, XnUserID nId, void* pCookie )
     {
-        ((UserCallback*)pCookie)->Lost( generator, nId );
+        ((PoseCallback*)pCookie)->PoseLost( capability, strPose, nId );
     }
 
-    virtual void Detected( xn::UserGenerator& generator, XnUserID nId )
+    // ãƒãƒ¼ã‚ºæ¤œå‡º
+    virtual void PoseDetected( xn::PoseDetectionCapability& capability,
+        const XnChar* strPose, XnUserID nId )
     {
     }
 
-    virtual void Lost( xn::UserGenerator& generator, XnUserID nId )
+    // ãƒãƒ¼ã‚ºæ¶ˆå¤±
+    virtual void PoseLost( xn::PoseDetectionCapability& capability,
+        const XnChar* strPose, XnUserID nId )
     {
     }
 };
 
-class User
+
+class Pose
 {
 public:
 
-    User()
-        : userCallbacks_( 0 )
+    Pose()
+        : pose_( 0 )
+        , poseCallbacks_( 0 )
     {
     }
 
-    virtual ~User()
+    ~Pose()
     {
-        if ( user_.IsValid() && (userCallbacks_ != 0) ) {
-            user_.UnregisterUserCallbacks(userCallbacks_);
+        if ( pose_.IsValid() && (poseCallbacks_ != 0) ) {
+            pose_.UnregisterFromPoseCallbacks( poseCallbacks_ );
         }
     }
 
-    xn::UserGenerator& GetUserGenerator() { return user_; }
-    void RegisterCallback( UserCallback* callback )
+    void SetPoseDetectionCapability( xn::PoseDetectionCapability pose ) { pose_ = pose; }
+
+    xn::PoseDetectionCapability& GetPoseDetectionCapability() { return pose_; }
+
+    void RegisterCallback( PoseCallback* callback )
     {
-        user_.RegisterUserCallbacks( &UserCallback::Detected, &UserCallback::Lost, callback, userCallbacks_);
-    }
+        assert( pose_.IsValid() );
 
-protected:
-
-    xn::UserGenerator user_;
-    XnCallbackHandle userCallbacks_;
-};
-
-class App : public UserCallback
-{
-protected:
-
-    virtual void Detected( xn::UserGenerator& generator, XnUserID nId )
-    {
-        std::cout << "ƒ†[ƒU[ŒŸo:" << nId << " " << generator.GetNumberOfUsers() << "l–Ú" << std::endl;
-    }
-
-    virtual void Lost( xn::UserGenerator& generator, XnUserID nId )
-    {
-        std::cout << "ƒ†[ƒU[Á¸:" << nId << std::endl;
-    }
-
-};
-
-// RGBƒsƒNƒZƒ‹‚Ì‰Šú‰»
-inline XnRGB24Pixel xnRGB24Pixel( int r, int g, int b )
-{
-    XnRGB24Pixel pixel = { r, g, b };
-    return pixel;
-}
-
-int main (int argc, char * argv[])
-{
-    XnStatus rc;
-    IplImage* camera = 0;
-
-    try {
-        xn::Context context;
-        xn::Recorder recorder;
-        xn::Player player;
-
-        if ( argc == 1 ) {
-            // ƒRƒ“ƒeƒLƒXƒg‚Ì‰Šú‰»
-            rc = context.InitFromXmlFile(CONFIG_XML_PATH);
-            if (rc != XN_STATUS_OK) {
-                throw std::runtime_error(xnGetStatusString(rc));
-            }
-
-            // ƒŒƒR[ƒ_[‚Ìì¬
-            rc = recorder.Create(context);
-            if (rc != XN_STATUS_OK) {
-                throw std::runtime_error(xnGetStatusString(rc));
-            }
-
-            // ‹L˜^İ’è
-            rc = recorder.SetDestination(XN_RECORD_MEDIUM_FILE, RECORDE_PATH);
-            if (rc != XN_STATUS_OK) {
-                throw std::runtime_error(xnGetStatusString(rc));
-            }
-        }
-        else {
-            rc = context.Init();
-            if (rc != XN_STATUS_OK) {
-              throw std::runtime_error(xnGetStatusString(rc));
-            }
-
-            // ‹L˜^‚³‚ê‚½ƒtƒ@ƒCƒ‹‚ğŠJ‚­
-            rc = context.OpenFileRecording(argv[1]);
-            if (rc != XN_STATUS_OK) {
-              throw std::runtime_error(xnGetStatusString(rc));
-            }
-
-            // ƒvƒŒ[ƒ„[‚Ìì¬
-            rc = context.FindExistingNode(XN_NODE_TYPE_PLAYER, player);
-            if (rc != XN_STATUS_OK) {
-              throw std::runtime_error(xnGetStatusString(rc));
-            }
-        }
-
-        // ƒCƒ[ƒWƒWƒFƒlƒŒ[ƒ^‚Ìì¬
-        xn::ImageGenerator image;
-        rc = context.FindExistingNode(XN_NODE_TYPE_IMAGE, image);
-        if (rc != XN_STATUS_OK) {
-            throw std::runtime_error(xnGetStatusString(rc));
-        }
-
-        // ƒfƒvƒXƒWƒFƒlƒŒ[ƒ^‚Ìì¬
-        xn::DepthGenerator depth;
-        rc = context.FindExistingNode(XN_NODE_TYPE_DEPTH, depth);
-        if (rc != XN_STATUS_OK) {
-            throw std::runtime_error(xnGetStatusString(rc));
-        }
-
-        // ƒfƒvƒX‚ÌÀ•W‚ğƒCƒ[ƒW‚É‡‚í‚¹‚é
-        //  ƒ†[ƒU[À•W‚Ìƒrƒ…[ƒ|ƒCƒ“ƒg‚àƒfƒvƒX‚ÌÀ•W‚Å‡‚í‚¹‚é
-        depth.GetAlternativeViewPointCap().SetViewPoint(image);
-
-        // ƒ†[ƒU[‚Ìì¬
-        User user;
-        rc = context.FindExistingNode( XN_NODE_TYPE_USER, user.GetUserGenerator() );
+        XnStatus rc = pose_.RegisterToPoseCallbacks( &PoseCallback::PoseDetected, &PoseCallback::PoseLost, callback, poseCallbacks_ );
         if ( rc != XN_STATUS_OK ) {
-            rc = user.GetUserGenerator().Create( context );
-            if ( rc != XN_STATUS_OK ) {
-                throw std::runtime_error( xnGetStatusString( rc ) );
-            }
+            throw std::runtime_error( xnGetStatusString( rc ) );
+        }
+    }
+
+protected:
+
+    xn::PoseDetectionCapability pose_;
+    XnCallbackHandle poseCallbacks_;
+
+};
+
+class App : public UserCallback,
+            public PoseCallback
+{
+public:
+
+    App()
+        : isShowImage( true )
+        , isShowUser( true )
+    {
+    }
+
+    App( const std::string& xmlFileName, const std::string& recordFileName )
+        : isShowImage( true )
+        , isShowUser( true )
+    {
+    }
+
+    App( const std::string& recordFileName )
+        : isShowImage( true )
+        , isShowUser( true )
+    {
+    }
+
+    void InitFromXml( const std::string& xmlFileName, const std::string& recordFileName )
+    {
+        // ã‚³ãƒ³ãƒ†ã‚­ã‚¹ãƒˆã®åˆæœŸåŒ–
+        XnStatus rc = context.InitFromXmlFile( xmlFileName.c_str() );
+        if ( rc != XN_STATUS_OK ) {
+            throw std::runtime_error( xnGetStatusString( rc ) );
         }
 
-        // ƒ†[ƒU[ŒŸo‹@”\‚ğƒTƒ|[ƒg‚µ‚Ä‚¢‚é‚©Šm”F
-        if (!user.GetUserGenerator().IsCapabilitySupported(XN_CAPABILITY_SKELETON)) {
-            throw std::runtime_error("ƒ†[ƒU[ŒŸo‚ğƒTƒ|[ƒg‚µ‚Ä‚Ü‚¹‚ñ");
+        // ãƒ¬ã‚³ãƒ¼ãƒ€ãƒ¼ã®ä½œæˆ
+        rc = recorder.Create(context);
+        if ( rc != XN_STATUS_OK ) {
+            throw std::runtime_error( xnGetStatusString( rc ) );
         }
 
-        // ƒ†[ƒU[”F¯‚ÌƒR[ƒ‹ƒoƒbƒN‚ğ“o˜^
-        App app;
-        user.RegisterCallback( &app );
-
-        if ( recorder.IsValid() ) {
-            // ƒCƒ[ƒW‚ğ‹L˜^‘ÎÛ‚É’Ç‰Á
-            rc = recorder.AddNodeToRecording(image, XN_CODEC_JPEG);
-            if (rc != XN_STATUS_OK) {
-                throw std::runtime_error(xnGetStatusString(rc));
-            }
-        
-            // ƒfƒvƒX‚ğ‹L˜^‘ÎÛ‚É’Ç‰Á
-            rc = recorder.AddNodeToRecording(depth, XN_CODEC_UNCOMPRESSED);
-            if (rc != XN_STATUS_OK) {
-                std::cout << __LINE__ << std::endl;
-                throw std::runtime_error(xnGetStatusString(rc));
-            }
-        
-            // ‹L˜^ŠJn(WaitOneUpdateAll‚Ìƒ^ƒCƒ~ƒ“ƒO‚Å‹L˜^‚³‚ê‚é)
-            rc = recorder.Record();
-            if (rc != XN_STATUS_OK) {
-                throw std::runtime_error(xnGetStatusString(rc));
-            }
+        // è¨˜éŒ²è¨­å®š
+        rc = recorder.SetDestination( XN_RECORD_MEDIUM_FILE, recordFileName.c_str() );
+        if ( rc != XN_STATUS_OK ) {
+            throw std::runtime_error( xnGetStatusString( rc ) );
         }
 
-        // ƒWƒFƒXƒ`ƒƒ[ŒŸo‚ÌŠJn
-        context.StartGeneratingAll();
+        InitOpenNI();
+        InitOpenCV();
+    }
 
-        // ƒJƒƒ‰ƒTƒCƒY‚ÌƒCƒ[ƒW‚ğì¬(8bit‚ÌRGB)
-        XnMapOutputMode outputMode;
-        image.GetMapOutputMode(outputMode);
-        camera = ::cvCreateImage(cvSize(outputMode.nXRes, outputMode.nYRes),
-            IPL_DEPTH_8U, 3);
-        if (!camera) {
-            throw std::runtime_error("error : cvCreateImage");
+    void InitFromRecord( const std::string& recordFileName )
+    {
+        XnStatus rc = context.Init();
+        if ( rc != XN_STATUS_OK ) {
+            throw std::runtime_error( xnGetStatusString( rc ) );
         }
 
-        // •\¦ó‘Ô
-        bool isShowImage = true;
-        bool isShowUser = true;
+        // è¨˜éŒ²ã•ã‚ŒãŸãƒ•ã‚¡ã‚¤ãƒ«ã‚’é–‹ã
+        rc = context.OpenFileRecording( recordFileName.c_str() );
+        if ( rc != XN_STATUS_OK ) {
+            throw std::runtime_error( xnGetStatusString( rc ) );
+        }
 
-        // ƒƒCƒ“ƒ‹[ƒv
-        while (1) {
-            // ‚·‚×‚Ä‚Ìƒm[ƒh‚ÌXV‚ğ‘Ò‚Â
+        // ãƒ—ãƒ¬ãƒ¼ãƒ¤ãƒ¼ã®ä½œæˆ
+        rc = context.FindExistingNode( XN_NODE_TYPE_PLAYER, player );
+        if ( rc != XN_STATUS_OK ) {
+            throw std::runtime_error( xnGetStatusString( rc ) );
+        }
+
+        InitOpenNI();
+        InitOpenCV();
+    }
+
+    void Run()
+    {
+        while ( 1 ) {
+            // ã™ã¹ã¦ã®ãƒãƒ¼ãƒ‰ã®æ›´æ–°ã‚’å¾…ã¤
             context.WaitAndUpdateAll();
 
-            // ‰æ‘œƒf[ƒ^‚Ìæ“¾
+            // ç”»åƒãƒ‡ãƒ¼ã‚¿ã®å–å¾—
             xn::ImageMetaData imageMD;
             image.GetMetaData(imageMD);
 
-            // ƒ†[ƒU[ƒf[ƒ^‚Ìæ“¾
+            // ãƒ¦ãƒ¼ã‚¶ãƒ¼ãƒ‡ãƒ¼ã‚¿ã®å–å¾—
             xn::SceneMetaData sceneMD;
             user.GetUserGenerator().GetUserPixels(0, sceneMD);
 
-            // ƒJƒƒ‰‰æ‘œ‚Ì•\¦
+            // ã‚«ãƒ¡ãƒ©ç”»åƒã®è¡¨ç¤º
             char* dest = camera->imageData;
             const xn::RGB24Map& rgb = imageMD.RGB24Map();
             for (int y = 0; y < imageMD.YRes(); ++y) {
                 for (int x = 0; x < imageMD.XRes(); ++x) {
-                    // ƒ†[ƒU[•\¦
+                    // ãƒ¦ãƒ¼ã‚¶ãƒ¼è¡¨ç¤º
                     XnLabel label = sceneMD(x, y);
                     if (!isShowUser) {
                         label = 0;
                     }
 
-                    // ƒJƒƒ‰‰æ‘œ‚Ì•\¦
+                    // ã‚«ãƒ¡ãƒ©ç”»åƒã®è¡¨ç¤º
                     XnRGB24Pixel pixel = rgb(x, y);
                     if (!isShowImage) {
                         pixel = xnRGB24Pixel( 255, 255, 255 );
                     }
 
-                    // o—Íæ‚É•`‰æ
+                    // å‡ºåŠ›å…ˆã«æç”»
                     dest[0] = pixel.nRed   * Colors[label][0];
                     dest[1] = pixel.nGreen * Colors[label][1];
                     dest[2] = pixel.nBlue  * Colors[label][2];
@@ -265,13 +210,13 @@ int main (int argc, char * argv[])
             ::cvCvtColor(camera, camera, CV_BGR2RGB);
             ::cvShowImage("KinectImage", camera);
 
-            // ƒL[ƒCƒxƒ“ƒg
+            // ã‚­ãƒ¼ã‚¤ãƒ™ãƒ³ãƒˆ
             char key = cvWaitKey(10);
-            // I—¹‚·‚é
+            // çµ‚äº†ã™ã‚‹
             if (key == 'q') {
                 break;
             }
-            // •\¦‚·‚é/‚µ‚È‚¢‚ÌØ‚è‘Ö‚¦
+            // è¡¨ç¤ºã™ã‚‹/ã—ãªã„ã®åˆ‡ã‚Šæ›¿ãˆ
             else if (key == 'i') {
                 isShowImage = !isShowImage;
             }
@@ -280,11 +225,179 @@ int main (int argc, char * argv[])
             }
         }
     }
+
+protected:
+
+    void InitOpenNI()
+    {
+        // ã‚¤ãƒ¡ãƒ¼ã‚¸ã‚¸ã‚§ãƒãƒ¬ãƒ¼ã‚¿ã®ä½œæˆ
+        XnStatus rc = context.FindExistingNode(XN_NODE_TYPE_IMAGE, image);
+        if ( rc != XN_STATUS_OK ) {
+            throw std::runtime_error( xnGetStatusString( rc ) );
+        }
+
+        // ãƒ‡ãƒ—ã‚¹ã‚¸ã‚§ãƒãƒ¬ãƒ¼ã‚¿ã®ä½œæˆ
+        rc = context.FindExistingNode(XN_NODE_TYPE_DEPTH, depth);
+        if ( rc != XN_STATUS_OK ) {
+            throw std::runtime_error( xnGetStatusString( rc ) );
+        }
+
+        // ãƒ‡ãƒ—ã‚¹ã®åº§æ¨™ã‚’ã‚¤ãƒ¡ãƒ¼ã‚¸ã«åˆã‚ã›ã‚‹
+        //  ãƒ¦ãƒ¼ã‚¶ãƒ¼åº§æ¨™ã®ãƒ“ãƒ¥ãƒ¼ãƒã‚¤ãƒ³ãƒˆã‚‚ãƒ‡ãƒ—ã‚¹ã®åº§æ¨™ã§åˆã‚ã›ã‚‹
+        depth.GetAlternativeViewPointCap().SetViewPoint( image );
+
+        // ãƒ¦ãƒ¼ã‚¶ãƒ¼ã®ä½œæˆ
+        rc = context.FindExistingNode( XN_NODE_TYPE_USER, user.GetUserGenerator() );
+        if ( rc != XN_STATUS_OK ) {
+            rc = user.GetUserGenerator().Create( context );
+            if ( rc != XN_STATUS_OK ) {
+                throw std::runtime_error( xnGetStatusString( rc ) );
+            }
+        }
+
+        // ãƒ¦ãƒ¼ã‚¶ãƒ¼æ¤œå‡ºæ©Ÿèƒ½ã‚’ã‚µãƒãƒ¼ãƒˆã—ã¦ã„ã‚‹ã‹ç¢ºèª
+        if ( !user.GetUserGenerator().IsCapabilitySupported( XN_CAPABILITY_SKELETON ) ) {
+            throw std::runtime_error( "ãƒ¦ãƒ¼ã‚¶ãƒ¼æ¤œå‡ºã‚’ã‚µãƒãƒ¼ãƒˆã—ã¦ã¾ã›ã‚“" );
+        }
+
+
+        // ã‚­ãƒ£ãƒªãƒ–ãƒ¬ãƒ¼ã‚·ãƒ§ãƒ³ã«ãƒãƒ¼ã‚ºãŒå¿…è¦
+        xn::SkeletonCapability skelton = user.GetUserGenerator().GetSkeletonCap();
+        if ( skelton.NeedPoseForCalibration() ) {
+            // ãƒãƒ¼ã‚ºæ¤œå‡ºã®ã‚µãƒãƒ¼ãƒˆãƒã‚§ãƒƒã‚¯
+            if ( !user.GetUserGenerator().IsCapabilitySupported( XN_CAPABILITY_POSE_DETECTION ) ) {
+                throw std::runtime_error( "ãƒãƒ¼ã‚ºæ¤œå‡ºã‚’ã‚µãƒãƒ¼ãƒˆã—ã¦ã¾ã›ã‚“" );
+            }
+
+            // ã‚­ãƒ£ãƒªãƒ–ãƒ¬ãƒ¼ã‚·ãƒ§ãƒ³ãƒãƒ¼ã‚ºã®å–å¾—
+            XnChar p[20] = "";
+            skelton.GetCalibrationPose( p );
+            poseName = p;
+
+            // ãƒãƒ¼ã‚ºæ¤œå‡ºã®ã‚³ãƒ¼ãƒ«ãƒãƒƒã‚¯ã‚’ç™»éŒ²
+            pose.SetPoseDetectionCapability( user.GetUserGenerator().GetPoseDetectionCap() );
+            pose.RegisterCallback( this );
+        }
+
+        // ãƒ¦ãƒ¼ã‚¶ãƒ¼èªè­˜ã®ã‚³ãƒ¼ãƒ«ãƒãƒƒã‚¯ã‚’ç™»éŒ²
+        user.RegisterCallback( this );
+
+
+        // è¨˜éŒ²ã™ã‚‹å ´åˆã¯ã€ã‚¸ã‚§ãƒãƒ¬ãƒ¼ã‚¿ã®è¨­å®š
+        if ( recorder.IsValid() ) {
+            // ã‚¤ãƒ¡ãƒ¼ã‚¸ã‚’è¨˜éŒ²å¯¾è±¡ã«è¿½åŠ 
+            rc = recorder.AddNodeToRecording( image, XN_CODEC_JPEG );
+            if ( rc != XN_STATUS_OK ) {
+                throw std::runtime_error( xnGetStatusString( rc ) );
+            }
+        
+            // ãƒ‡ãƒ—ã‚¹ã‚’è¨˜éŒ²å¯¾è±¡ã«è¿½åŠ 
+            rc = recorder.AddNodeToRecording( depth, XN_CODEC_UNCOMPRESSED );
+            if ( rc != XN_STATUS_OK ) {
+                throw std::runtime_error( xnGetStatusString( rc ) );
+            }
+        
+            // è¨˜éŒ²é–‹å§‹(WaitOneUpdateAllã®ã‚¿ã‚¤ãƒŸãƒ³ã‚°ã§è¨˜éŒ²ã•ã‚Œã‚‹)
+            rc = recorder.Record();
+            if ( rc != XN_STATUS_OK ) {
+                throw std::runtime_error( xnGetStatusString( rc ) );
+            }
+        }
+
+        // ã‚¸ã‚§ã‚¹ãƒãƒ£ãƒ¼æ¤œå‡ºã®é–‹å§‹
+        context.StartGeneratingAll();
+    }
+
+    void InitOpenCV()
+    {
+        // ã‚«ãƒ¡ãƒ©ã‚µã‚¤ã‚ºã®ã‚¤ãƒ¡ãƒ¼ã‚¸ã‚’ä½œæˆ(8bitã®RGB)
+        XnMapOutputMode outputMode;
+        image.GetMapOutputMode( outputMode );
+        camera = ::cvCreateImage( cvSize( outputMode.nXRes, outputMode.nYRes ), IPL_DEPTH_8U, 3 );
+        if ( !camera ) {
+            throw std::runtime_error( "error : cvCreateImage" );
+        }
+    }
+
+protected:
+
+    virtual void UserDetected( xn::UserGenerator& generator, XnUserID nId )
+    {
+        std::cout << "ãƒ¦ãƒ¼ã‚¶ãƒ¼æ¤œå‡º:" << nId << " " << generator.GetNumberOfUsers() << "äººç›®" << std::endl;
+    
+        if ( !poseName.empty() ) {
+            generator.GetPoseDetectionCap().StartPoseDetection( poseName.c_str(), nId );
+        }
+        else {
+            generator.GetSkeletonCap().RequestCalibration( nId, TRUE );
+        }
+    }
+
+    virtual void UserLost( xn::UserGenerator& generator, XnUserID nId )
+    {
+        std::cout << "ãƒ¦ãƒ¼ã‚¶ãƒ¼æ¶ˆå¤±:" << nId << std::endl;
+    }
+
+    // ãƒãƒ¼ã‚ºæ¤œå‡º
+    void PoseDetected( xn::PoseDetectionCapability& capability, const XnChar* strPose, XnUserID nId )
+    {
+      std::cout << "ãƒãƒ¼ã‚ºæ¤œå‡º:" << strPose << " ãƒ¦ãƒ¼ã‚¶ãƒ¼:" << nId << std::endl;
+
+      user.GetUserGenerator().GetPoseDetectionCap().StopPoseDetection( nId );
+      user.GetUserGenerator().GetSkeletonCap().RequestCalibration( nId, TRUE );
+    }
+
+    // ãƒãƒ¼ã‚ºæ¶ˆå¤±
+    void PoseLost( xn::PoseDetectionCapability& capability, const XnChar* strPose, XnUserID nId)
+    {
+      std::cout << "ãƒãƒ¼ã‚ºæ¶ˆå¤±:" << strPose << " ãƒ¦ãƒ¼ã‚¶ãƒ¼:" << nId << std::endl;
+    }
+
+private:
+    
+    // RGBãƒ”ã‚¯ã‚»ãƒ«ã®åˆæœŸåŒ–
+    inline XnRGB24Pixel xnRGB24Pixel( int r, int g, int b )
+    {
+        XnRGB24Pixel pixel = { r, g, b };
+        return pixel;
+    }
+
+private:
+
+    xn::Context context;
+    xn::Recorder recorder;
+    xn::Player player;
+    xn::ImageGenerator image;
+    xn::DepthGenerator depth;
+
+    User user;
+    Pose pose;
+
+    cv::Ptr< IplImage >camera;
+
+    std::string poseName;
+
+    // è¡¨ç¤ºçŠ¶æ…‹
+    bool isShowImage;
+    bool isShowUser;
+};
+
+int main (int argc, char * argv[])
+{
+    try {
+        App app;
+        if ( argc == 1 ) {
+            app.InitFromXml( CONFIG_XML_PATH, RECORDE_PATH );
+        }
+        else {
+            app.InitFromRecord( argv[1] );
+        }
+
+        app.Run();
+    }
     catch (std::exception& ex) {
         std::cout << ex.what() << std::endl;
     }
-
-    ::cvReleaseImage(&camera);
 
     return 0;
 }
