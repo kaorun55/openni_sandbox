@@ -5,11 +5,11 @@
   <PropertyGroup />
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(OPEN_NI_INCLUDE);C:\OpenCV2.3\build\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(OPEN_NI_INCLUDE);C:\OpenCV2.3\build\include;$(XN_NITE_INSTALL_PATH)\Include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>$(OPEN_NI_LIB);C:\OpenCV2.3\build\x86\vc10\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>OpenNI.lib;opencv_core230.lib;opencv_highgui230.lib;opencv_imgproc230.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(OPEN_NI_LIB);C:\OpenCV2.3\build\x86\vc10\lib;$(XN_NITE_INSTALL_PATH)\Lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>OpenNI.lib;XnVNITE_1_4_1.lib;opencv_core230.lib;opencv_highgui230.lib;opencv_imgproc230.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup />

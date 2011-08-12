@@ -80,8 +80,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Pose.h" />
+    <ClInclude Include="SessionManager.h" />
     <ClInclude Include="Skeleton.h" />
     <ClInclude Include="SkeltonDrawer.h" />
+    <ClInclude Include="SwipeDetector.h" />
     <ClInclude Include="User.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

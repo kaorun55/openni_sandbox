@@ -11,6 +11,9 @@
 #include "Pose.h"
 #include "Skeleton.h"
 
+#include "SessionManager.h"
+#include "SwipeDetector.h"
+
 #include "SkeltonDrawer.h"
 
 const char* CONFIG_XML_PATH = "SamplesConfig.xml";
@@ -28,7 +31,9 @@ const XnFloat Colors[][3] =
 
 class App : public UserCallback,
             public PoseCallback,
-            public SkeletonCallback
+            public SkeletonCallback,
+            public SessionManagerCallback,
+            public SwipeDetectorCallback
 {
 public:
 
@@ -105,6 +110,7 @@ public:
         while ( 1 ) {
             // すべてのノードの更新を待つ
             context.WaitAndUpdateAll();
+            sessionManager.GetSessionManager().Update( &context );
 
             // 画像データの取得
             xn::ImageMetaData imageMD;
@@ -254,6 +260,12 @@ protected:
             }
         }
 
+        sessionManager.Initialize( context, "Wave,Click,RaiseHand", "RaiseHand" );
+        sessionManager.RegisterCallback( this );
+
+        swipeDetector.RegisterCallback( this );
+        sessionManager.GetSessionManager().AddListener( &swipeDetector.GetSwipeDetector() );
+
         // ジェスチャー検出の開始
         context.StartGeneratingAll();
     }
@@ -323,6 +335,41 @@ protected:
       }
     }
 
+    virtual void SessionStart( const XnPoint3D& pFocus )
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    virtual void SessionEnd()
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    virtual void SwipeUp( XnFloat fVelocity, XnFloat fAngle )
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    virtual void SwipeDown( XnFloat fVelocity, XnFloat fAngle )
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    virtual void SwipeRight( XnFloat fVelocity, XnFloat fAngle )
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    virtual void SwipeLeft( XnFloat fVelocity, XnFloat fAngle )
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
+    virtual void Swipe( XnVDirection eDir, XnFloat fVelocity, XnFloat fAngle )
+    {
+        std::cout << __FUNCTION__ << std::endl;
+    }
+
 private:
     
     // RGBピクセルの初期化
@@ -343,6 +390,9 @@ private:
     User user;
     Pose pose;
     Skeleton skeleton;
+
+    SessionManager sessionManager;
+    SwipeDetector swipeDetector;
 
     cv::Ptr< IplImage >camera;
 
