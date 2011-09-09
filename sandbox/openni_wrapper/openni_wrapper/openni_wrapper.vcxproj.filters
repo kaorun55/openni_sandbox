@@ -44,5 +44,11 @@
     <ClInclude Include="openni\User.h">
       <Filter>opennni</Filter>
     </ClInclude>
+    <ClInclude Include="openni\Player.h">
+      <Filter>opennni</Filter>
+    </ClInclude>
+    <ClInclude Include="App.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
