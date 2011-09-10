@@ -3,6 +3,7 @@
 #include <XnCppWrapper.h>
 
 namespace openni {
+    // 再生のコールバック
     class PlayerCallback
     {
         friend class Player;
@@ -25,7 +26,7 @@ namespace openni {
         }
     };
 
-
+    // 再生
     class Player
     {
     public:
