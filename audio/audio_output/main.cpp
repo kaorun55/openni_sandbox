@@ -48,85 +48,85 @@ public:
     // WAVEの初期化
     void initWave()
     {
-	    // WAVEデータの設定
-	    WAVEFORMATEX wf;
-	    wf.wFormatTag = 0x0001; // PCM
-	    wf.nChannels = waveMode.nChannels;
-	    wf.nSamplesPerSec = waveMode.nSampleRate;
-	    wf.wBitsPerSample = waveMode.nBitsPerSample;
-	    wf.nBlockAlign = wf.wBitsPerSample * wf.nChannels / 8;
-	    wf.nAvgBytesPerSec = wf.nBlockAlign * wf.nSamplesPerSec;
-	    MMRESULT mmRes = waveOutOpen(&hWaveOut, WAVE_MAPPER, &wf, NULL, NULL, CALLBACK_NULL);
-	    if (mmRes != MMSYSERR_NOERROR)
-	    {
+        // WAVEデータの設定
+        WAVEFORMATEX wf;
+        wf.wFormatTag = 0x0001; // PCM
+        wf.nChannels = waveMode.nChannels;
+        wf.nSamplesPerSec = waveMode.nSampleRate;
+        wf.wBitsPerSample = waveMode.nBitsPerSample;
+        wf.nBlockAlign = wf.wBitsPerSample * wf.nChannels / 8;
+        wf.nAvgBytesPerSec = wf.nBlockAlign * wf.nSamplesPerSec;
+        MMRESULT mmRes = waveOutOpen(&hWaveOut, WAVE_MAPPER, &wf, NULL, NULL, CALLBACK_NULL);
+        if (mmRes != MMSYSERR_NOERROR)
+        {
             throw std::runtime_error( "Warning: Failed opening wave out device. Audio will not be played!\n" );
-	    }
+        }
 
-	    // 音声データ用のバッファの作成と初期化
+        // 音声データ用のバッファの作成と初期化
         AudioBuffers.resize( NUMBER_OF_AUDIO_BUFFERS );
-	    xnOSMemSet(&AudioBuffers[0], 0, sizeof(WAVEHDR)*AudioBuffers.size());
+        xnOSMemSet(&AudioBuffers[0], 0, sizeof(WAVEHDR)*AudioBuffers.size());
 
-	    const XnUInt32 nMaxBufferSize = 2 * 1024 * 1024;
-	    for (int i = 0; i < NUMBER_OF_AUDIO_BUFFERS; ++i)
-	    {
-		    AudioBuffers[i].lpData = new XnChar[nMaxBufferSize];
-		    AudioBuffers[i].dwUser = i;
-		    AudioBuffers[i].dwFlags = WHDR_DONE; // mark this buffer as empty (already played)
-	    }
+        const XnUInt32 nMaxBufferSize = 2 * 1024 * 1024;
+        for (int i = 0; i < NUMBER_OF_AUDIO_BUFFERS; ++i)
+        {
+            AudioBuffers[i].lpData = new XnChar[nMaxBufferSize];
+            AudioBuffers[i].dwUser = i;
+            AudioBuffers[i].dwFlags = WHDR_DONE; // mark this buffer as empty (already played)
+        }
     }
 
     // メインループ
     void run()
     {
-	    int nAudioNextBuffer = 0;
+        int nAudioNextBuffer = 0;
 
-	    printf ("Press any key to exit...\n");
+        printf ("Press any key to exit...\n");
 
-	    // 今のデータを捨てる
-	    audio.WaitAndUpdateData();
+        // 今のデータを捨てる
+        audio.WaitAndUpdateData();
 
         while (!xnOSWasKeyboardHit()) {
-		    // データの更新
-		    XnStatus nRetVal = audio.WaitAndUpdateData();
-		    if (nRetVal != XN_STATUS_OK) {
+            // データの更新
+            XnStatus nRetVal = audio.WaitAndUpdateData();
+            if (nRetVal != XN_STATUS_OK) {
                 throw std::runtime_error(xnGetStatusString(nRetVal));
-		    }
+            }
 
             // バッファの取得
-		    WAVEHDR* pHeader = &AudioBuffers[nAudioNextBuffer];
-		    if ((pHeader->dwFlags & WHDR_DONE) == 0) {
-			    printf("No audio buffer is available!. Audio buffer will be lost!\n");
-			    continue;
-		    }
+            WAVEHDR* pHeader = &AudioBuffers[nAudioNextBuffer];
+            if ((pHeader->dwFlags & WHDR_DONE) == 0) {
+                printf("No audio buffer is available!. Audio buffer will be lost!\n");
+                continue;
+            }
 
-		    // WAVEヘッダのクリーンアップ
-		    MMRESULT mmRes = waveOutUnprepareHeader(hWaveOut, pHeader, sizeof(WAVEHDR));
-		    if ( mmRes != MMSYSERR_NOERROR ) {
+            // WAVEヘッダのクリーンアップ
+            MMRESULT mmRes = waveOutUnprepareHeader(hWaveOut, pHeader, sizeof(WAVEHDR));
+            if ( mmRes != MMSYSERR_NOERROR ) {
                 OutputErrorText( mmRes );
-		    }
+            }
 
             // WAVEデータの取得
-		    pHeader->dwBufferLength = audio.GetDataSize();
-		    pHeader->dwFlags = 0;
-		    xnOSMemCopy(pHeader->lpData, audio.GetAudioBuffer(), pHeader->dwBufferLength);
+            pHeader->dwBufferLength = audio.GetDataSize();
+            pHeader->dwFlags = 0;
+            xnOSMemCopy(pHeader->lpData, audio.GetAudioBuffer(), pHeader->dwBufferLength);
 
-		    // WAVEヘッダの初期化
-		    mmRes = waveOutPrepareHeader(hWaveOut, pHeader, sizeof(WAVEHDR));
-		    if ( mmRes != MMSYSERR_NOERROR ) {
+            // WAVEヘッダの初期化
+            mmRes = waveOutPrepareHeader(hWaveOut, pHeader, sizeof(WAVEHDR));
+            if ( mmRes != MMSYSERR_NOERROR ) {
                 OutputErrorText( mmRes );
-			    continue;
-		    }
+                continue;
+            }
 
-		    // WAVEデータを出力キューに入れる
-		    mmRes = waveOutWrite(hWaveOut, pHeader, sizeof(WAVEHDR));
-		    if ( mmRes != MMSYSERR_NOERROR ) {
+            // WAVEデータを出力キューに入れる
+            mmRes = waveOutWrite(hWaveOut, pHeader, sizeof(WAVEHDR));
+            if ( mmRes != MMSYSERR_NOERROR ) {
                 OutputErrorText( mmRes );
-			    continue;
-		    }
+                continue;
+            }
 
             // 次のバッファインデックス
-		    nAudioNextBuffer = (nAudioNextBuffer + 1) % NUMBER_OF_AUDIO_BUFFERS;
-	    }
+            nAudioNextBuffer = (nAudioNextBuffer + 1) % NUMBER_OF_AUDIO_BUFFERS;
+        }
     }
 
 private:
@@ -134,9 +134,9 @@ private:
     // エラーメッセージの出力
     void OutputErrorText( MMRESULT mmRes )
     {
-		CHAR msg[250];
-		waveOutGetErrorText(mmRes, msg, 250);
-		std::cout << msg << std::endl;
+        CHAR msg[250];
+        waveOutGetErrorText(mmRes, msg, 250);
+        std::cout << msg << std::endl;
     }
 };
 
