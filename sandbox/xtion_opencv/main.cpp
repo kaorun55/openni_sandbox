@@ -6,6 +6,9 @@
 #include <opencv/highgui.h>
 #include <ctype.h>
 
+#include <vfw.h>
+#pragma comment( lib, "vfw32.lib" )
+
 // デプスのヒストグラムを作成
 typedef std::vector<float> depth_hist;
 depth_hist getDepthHistgram(const xn::DepthGenerator& depth,
@@ -55,41 +58,56 @@ int	main (int argc, char **argv)
 		XnStatus rc;
 
 		xn::Context context;
-		rc = context.InitFromXmlFile("SamplesConfig.xml");
-		if ( rc != XN_STATUS_OK ) {
-			throw std::runtime_error( ::xnGetStatusString( rc ) );
-		}
+		//rc = context.InitFromXmlFile("SamplesConfig.xml");
+		//if ( rc != XN_STATUS_OK ) {
+		//	std::cout << "xn::Context::InitFromXmlFile failed : " << ::xnGetStatusString( rc ) << std::endl;
+		//}
 
 		xn::DepthGenerator  depthGenerator;
-		rc = context.FindExistingNode( XN_NODE_TYPE_DEPTH, depthGenerator );
-		if ( rc != XN_STATUS_OK ) {
-			throw std::runtime_error( ::xnGetStatusString( rc ) );
-		}
+		//rc = context.FindExistingNode( XN_NODE_TYPE_DEPTH, depthGenerator );
+		//if ( rc != XN_STATUS_OK ) {
+		//	std::cout << "xn::Context::FindExistingNode failed : " << ::xnGetStatusString( rc ) << std::endl;
+		//}
 
 		// ジェネレートを開始する
-		context.StartGeneratingAll();
+		if ( depthGenerator.IsValid() ) {
+			context.StartGeneratingAll();
+		}
+
+		for ( int i = 0; i <= 9; ++i ) {
+			char name[256] = { 0 }, version[256] = { 0 };
+			BOOL ret = ::capGetDriverDescription( i, name, sizeof(name), version, sizeof(version) );
+			if ( ret ) {
+				std::cout << "No." << i << " Name: " << name << " Version : " << version << std::endl;
+			}
+			else {
+				std::cout << "capGetDriverDescription failed" << std::endl;
+			}
+		}
 
 		// カメラの画像を取得する
 		capture = cvCreateCameraCapture( 0 );
 		if ( capture == 0 ) {
-			throw std::runtime_error( ::xnGetStatusString( rc ) );
+			throw std::runtime_error( "::cvCreateCameraCapture failed" );
 		}
 
 		cvNamedWindow ("Capture", CV_WINDOW_AUTOSIZE);
 
-		bool isDepth = true;
+		bool isDepth = false;
 
 		// (3)カメラから画像をキャプチャする
 		while (1) {
-			context.WaitAndUpdateAll();
+			if ( depthGenerator.IsValid() ) {
+				context.WaitAndUpdateAll();
+			}
 
 			frame = cvQueryFrame (capture);
 
-			// デプスマップの作成
-			xn::DepthMetaData depthMD;
-			depthGenerator.GetMetaData(depthMD);
+			if ( depthGenerator.IsValid() && isDepth ) {
+				// デプスマップの作成
+				xn::DepthMetaData depthMD;
+				depthGenerator.GetMetaData(depthMD);
 
-			if ( isDepth ) {
 				// デプスマップを描画する
 				depth_hist depthHist = getDepthHistgram( depthGenerator, depthMD );
 				XnRGB24Pixel* rgb = (XnRGB24Pixel*)frame->imageData;
@@ -98,9 +116,9 @@ int	main (int argc, char **argv)
 						// デプスマップまたはイメージを描画する
 						XnRGB24Pixel& pixel = *rgb;
 						if ( depthMD( x, y ) != 0 ) {
-							pixel.nRed   = depthHist[depthMD( x, y )];
+							pixel.nRed   = 0;
 							pixel.nGreen = depthHist[depthMD( x, y )];
-							pixel.nBlue  = 0;
+							pixel.nBlue  = depthHist[depthMD( x, y )];
 						}
 					}
 				}
