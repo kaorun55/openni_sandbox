@@ -92,6 +92,8 @@ public:
                 throw std::runtime_error(xnGetStatusString(nRetVal));
             }
 
+            std::cout << "Update" << std::endl;
+
             // バッファの取得
             WAVEHDR* pHeader = &AudioBuffers[nAudioNextBuffer];
             if ((pHeader->dwFlags & WHDR_DONE) == 0) {
