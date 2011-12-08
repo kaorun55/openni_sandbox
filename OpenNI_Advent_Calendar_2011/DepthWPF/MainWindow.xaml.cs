@@ -44,7 +44,7 @@ namespace DepthWPF
                         {
                             Int16[] depthArray = new Int16[depthMD.XRes * depthMD.YRes];
                             Marshal.Copy( depthMD.DepthMapPtr, depthArray, 0, depthArray.Length );
-                            for  ( int i = 0; i < depthArray.Length; i++ ) {
+                            for ( int i = 0; i < depthArray.Length; i++ ) {
                                 depthArray[i] = (Int16)(0xffff - (0xffff * depthArray[i] / depth.DeviceMaxDepth));
                             }
 

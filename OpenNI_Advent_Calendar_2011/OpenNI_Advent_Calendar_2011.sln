@@ -5,6 +5,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CameraImageWPF", "CameraIma
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DepthWPF", "DepthWPF\DepthWPF.csproj", "{603119C4-25BA-40D9-8AE9-F20CAF17352F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkeletonWPF", "SkeletonWPF\SkeletonWPF.csproj", "{C17D9242-F6C2-4F54-BAF5-D4D3264CB5A4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x86 = Debug|x86
@@ -19,6 +21,10 @@ Global
 		{603119C4-25BA-40D9-8AE9-F20CAF17352F}.Debug|x86.Build.0 = Debug|x86
 		{603119C4-25BA-40D9-8AE9-F20CAF17352F}.Release|x86.ActiveCfg = Release|x86
 		{603119C4-25BA-40D9-8AE9-F20CAF17352F}.Release|x86.Build.0 = Release|x86
+		{C17D9242-F6C2-4F54-BAF5-D4D3264CB5A4}.Debug|x86.ActiveCfg = Debug|x86
+		{C17D9242-F6C2-4F54-BAF5-D4D3264CB5A4}.Debug|x86.Build.0 = Debug|x86
+		{C17D9242-F6C2-4F54-BAF5-D4D3264CB5A4}.Release|x86.ActiveCfg = Release|x86
+		{C17D9242-F6C2-4F54-BAF5-D4D3264CB5A4}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
