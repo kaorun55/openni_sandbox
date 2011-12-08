@@ -5,6 +5,7 @@ using System.Windows.Media.Imaging;
 using System.Threading;
 using OpenNI;
 using System.Windows.Threading;
+using System.Runtime.InteropServices;
 
 namespace DepthWPF
 {
@@ -41,14 +42,10 @@ namespace DepthWPF
                         // ImageMetaDataをBitmapSourceに変換する(unsafeにしなくてもOK!!)
                         this.Dispatcher.BeginInvoke( DispatcherPriority.Background, new Action( () =>
                         {
-                            var bitmap = BitmapSource.Create( depthMD.XRes, depthMD.YRes,
-                                96, 96, PixelFormats.Gray16, null, depthMD.DepthMapPtr,
-                                depthMD.DataSize, depthMD.XRes * depthMD.BytesPerPixel );
-
-                            ushort[] depthArray = new ushort[depthMD.DataSize];
-                            bitmap.CopyPixels( depthArray, depthMD.XRes * depthMD.BytesPerPixel, 0 );
+                            Int16[] depthArray = new Int16[depthMD.XRes * depthMD.YRes];
+                            Marshal.Copy( depthMD.DepthMapPtr, depthArray, 0, depthArray.Length );
                             for  ( int i = 0; i < depthArray.Length; i++ ) {
-                                depthArray[i] = (ushort)(0xffff - (0xffff * depthArray[i] / depth.DeviceMaxDepth));
+                                depthArray[i] = (Int16)(0xffff - (0xffff * depthArray[i] / depth.DeviceMaxDepth));
                             }
 
                             image1.Source = BitmapSource.Create( depthMD.XRes, depthMD.YRes,
