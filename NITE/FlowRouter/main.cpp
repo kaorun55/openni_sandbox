@@ -91,7 +91,7 @@ int main (int argc, char * const argv[]) {
         }
 
         // セッションの開始終了を通知するコールバックを登録する
-        XnVHandle sessionCallnack = sessionManager.RegisterSession( 0, &SessionStart, &SessionEnd, &SessionDetected);
+        XnVHandle sessionCallnack = sessionManager.RegisterSession( this, &SessionStart, &SessionEnd , &SessionDetected);
 
         // 静止を検出するまでの時間(msec)
         detector.steadyDetector.SetDetectionDuration( 2000 );

@@ -85,7 +85,7 @@ int main (int argc, char * const argv[]) {
         }
 
         // セッションの開始終了を通知するコールバックを登録する
-        XnVHandle sessionCallnack = sessionManager.RegisterSession( 0, &SessionStart, &SessionEnd, &SessionDetected);
+        XnVHandle sessionCallnack = sessionManager.RegisterSession( this, &SessionStart, &SessionEnd , &SessionDetected);
 
         XnVSelectableSlider1D slider( 3 );
 	    slider.RegisterItemHover(NULL, &MainSlider_OnHover);

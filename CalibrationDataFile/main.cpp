@@ -258,7 +258,7 @@ int main (int argc, char * argv[])
 
                     // カメラ画像の表示
                     XnRGB24Pixel pixel = rgb(x, y);
-                    pixel = xnRGB24Pixel( 255, 255, 255 );
+                    //pixel = xnRGB24Pixel( 255, 255, 255 );
 
                     // 出力先に描画
                     dest[0] = pixel.nRed   * Colors[label][0];
