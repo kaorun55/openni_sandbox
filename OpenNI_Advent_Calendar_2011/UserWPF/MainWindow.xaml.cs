@@ -28,10 +28,14 @@ namespace UserWPF
             try {
                 // ContextとImageGeneratorの作成
                 ScriptNode node;
-                context = Context.CreateFromXmlFile( "SamplesConfig.xml", out node );
+                context = Context.CreateFromXmlFile( "../../SamplesConfig.xml", out node );
                 context.GlobalMirror = false;
                 image = context.FindExistingNode( NodeType.Image ) as ImageGenerator;
-                user = context.FindExistingNode( NodeType.User ) as UserGenerator;
+
+                // ユーザーの作成
+                user = new UserGenerator(context);
+
+                context.StartGeneratingAll();
 
                 // 画像更新のためのスレッドを作成
                 shouldRun = true;
@@ -48,40 +52,45 @@ namespace UserWPF
             while ( shouldRun ) {
                 context.WaitAndUpdateAll();
 
-                // ImageMetaDataをBitmapSourceに変換する(unsafeにしなくてもOK!!)
                 this.Dispatcher.BeginInvoke( DispatcherPriority.Background, new Action( Draw ) );
             }
         }
 
+        // ユーザーにつける色
         static Color[] userColor= new Color[] {
-            Colors.Red, Colors.Blue, Colors.Green, Colors.Pink, Colors.Yellow,
-            Colors.Gold, Colors.Silver
+            Color.FromRgb( 0, 0, 0 ),   // ユーザーなし
+            Color.FromRgb( 1, 0, 0 ),
+            Color.FromRgb( 0, 1, 0 ),
+            Color.FromRgb( 0, 0, 1 ),
+            Color.FromRgb( 1, 1, 0 ),
+            Color.FromRgb( 1, 0, 1 ),
+            Color.FromRgb( 0, 1, 1 ),
         };
 
         private void Draw()
         {
-            
+            // マネージドのバッファにする
             ImageMetaData imageMD = image.GetMetaData();
-
-            // 描画可能なビットマップを作る
-            // http://msdn.microsoft.com/ja-jp/magazine/cc534995.aspx
-            var bitmap = new WriteableBitmap( imageMD.XRes, imageMD.YRes, 96, 96, PixelFormats.Rgb24, null );
-
             byte[] rgb = new byte[imageMD.DataSize];
             Marshal.Copy( imageMD.ImageMapPtr, rgb, 0, imageMD.DataSize );
 
-            var users = user.GetUserPixels( 0 );
-
-            for ( int i = 0; i < imageMD.XRes * imageMD.YRes; i++ ) {
+            // ユーザーを検出したピクセルの色を変える
+            var users = user.GetUserPixels(0);
+            for (int i = 0; i < imageMD.XRes * imageMD.YRes; i++)
+            {
                 if ( users[i] != 0 ) {
                     int rgbIndex = i * imageMD.BytesPerPixel;
-                    rgb[rgbIndex] = userColor[users[i]].R;
-                    rgb[rgbIndex + 1] = userColor[users[i]].G;
-                    rgb[rgbIndex + 2] = userColor[users[i]].B;
+                    rgb[rgbIndex] = (byte)(rgb[rgbIndex] * userColor[users[i]].R);
+                    rgb[rgbIndex + 1] = (byte)(rgb[rgbIndex + 1] * userColor[users[i]].G);
+                    rgb[rgbIndex + 2] = (byte)(rgb[rgbIndex + 2] * userColor[users[i]].B);
                 }
             }
 
-            bitmap.WritePixels( new Int32Rect( 0, 0, imageMD.XRes, imageMD.YRes ), rgb,
+            // バイト列をビットマップに展開
+            // 描画可能なビットマップを作る
+            // http://msdn.microsoft.com/ja-jp/magazine/cc534995.aspx
+            var bitmap = new WriteableBitmap(imageMD.XRes, imageMD.YRes, 96, 96, PixelFormats.Rgb24, null);
+            bitmap.WritePixels(new Int32Rect(0, 0, imageMD.XRes, imageMD.YRes), rgb,
                                 imageMD.XRes * imageMD.BytesPerPixel, 0 );
 
             image1.Source = bitmap;

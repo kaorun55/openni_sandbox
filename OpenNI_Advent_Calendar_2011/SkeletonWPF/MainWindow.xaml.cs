@@ -16,7 +16,6 @@ namespace SkeletonWPF
     public partial class MainWindow : Window
     {
         Context context;
-        ImageGenerator image;
         DepthGenerator depth;
         UserGenerator user;
 
@@ -27,107 +26,132 @@ namespace SkeletonWPF
         {
             InitializeComponent();
 
-            try {
-                // ContextとImageGeneratorの作成
+            try
+            {
+                // OpenNIの初期化
                 ScriptNode node;
-                context = Context.CreateFromXmlFile( "../../SamplesConfig.xml", out node );
+                context = Context.CreateFromXmlFile("../../SamplesConfig.xml", out node);
                 context.GlobalMirror = false;
-                image = context.FindExistingNode( NodeType.Image ) as ImageGenerator;
-                depth = context.FindExistingNode( NodeType.Depth ) as DepthGenerator;
-                user = context.FindExistingNode( NodeType.User ) as UserGenerator;
+
+                // depthの作成
+                depth = context.FindExistingNode(NodeType.Depth) as DepthGenerator;
+
+                // ユーザーの作成
+                user = new UserGenerator(context);
+
+                // ポーズが必要な場合は、最新版を入れてもらう
+                if (user.SkeletonCapability.DoesNeedPoseForCalibration)
+                {
+                    throw new Exception("最新のOpenNIをインストールしてください");
+                }
+
+                // ユーザー検出、キャリブレーション完了のイベントを登録する
+                user.NewUser += new EventHandler<NewUserEventArgs>(user_NewUser);
+                user.SkeletonCapability.CalibrationComplete += new EventHandler<CalibrationProgressEventArgs>(SkeletonCapability_CalibrationComplete);
+
+                // すべての骨格を追跡する
+                user.SkeletonCapability.SetSkeletonProfile(SkeletonProfile.All);
+
+                // 動作を開始する
+                context.StartGeneratingAll();
+
 
                 // 画像更新のためのスレッドを作成
                 shouldRun = true;
-                readerThread = new Thread( new ThreadStart( ReaderThread ) );
+                readerThread = new Thread(new ThreadStart(ReaderThread));
                 readerThread.Start();
             }
-            catch ( Exception ex ) {
-                MessageBox.Show( ex.Message );
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
             }
+        }
+
+        void SkeletonCapability_CalibrationComplete(object sender, CalibrationProgressEventArgs e)
+        {
+            // キャリブレーション成功
+            if (e.Status == CalibrationStatus.OK)
+            {
+                Trace.WriteLine("Calibration Success:" + e.ID);
+                user.SkeletonCapability.StartTracking(e.ID);
+            }
+            // キャリブレーション失敗
+            else
+            {
+                Trace.WriteLine("Calibration Failed:" + e.ID);
+            }
+        }
+
+        void user_NewUser(object sender, NewUserEventArgs e)
+        {
+            Trace.WriteLine("New User:" + e.ID);
+            user.SkeletonCapability.RequestCalibration(e.ID, true);
+        }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            shouldRun = false;
         }
 
         private void ReaderThread()
         {
-            while ( shouldRun ) {
+            while (shouldRun)
+            {
                 context.WaitAndUpdateAll();
+                DepthMetaData depthMD = depth.GetMetaData();
 
-                // ImageMetaDataをBitmapSourceに変換する(unsafeにしなくてもOK!!)
-                this.Dispatcher.BeginInvoke( DispatcherPriority.Background, new Action( Draw ) );
-            }
-        }
-
-        static Color[] userColor= new Color[] {
-            Colors.Red, Colors.Blue, Colors.Green, Colors.Pink, Colors.Yellow,
-            Colors.Gold, Colors.Silver
-        };
-
-        private void Draw()
-        {
-            ImageMetaData imageMD = image.GetMetaData();
-            DepthMetaData depthMD = depth.GetMetaData();
-
-            // 描画可能なビットマップを作る
-            // http://stackoverflow.com/questions/831860/generate-bitmapsource-from-uielement
-            RenderTargetBitmap bitmap =
-                        new RenderTargetBitmap( depthMD.XRes, depthMD.YRes, 96, 96, PixelFormats.Default );
-
-            DrawingVisual drawingVisual = new DrawingVisual();
-            using ( DrawingContext drawingContext = drawingVisual.RenderOpen() ) {
-                // 画像の描画
-                drawingContext.DrawImage( DrawRgb( imageMD ), new Rect( 0, 0, depthMD.XRes, depthMD.YRes ) );
-
-                // 骨格の描画
-                var users = user.GetUsers();
-                foreach ( var u in users ) {
-                    if ( !user.SkeletonCapability.IsTracking( u ) ) {
-                        continue;
+                this.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+                {
+                    // アンマネージド配列をマネージド配列に変換する
+                    Int16[] depthArray = new Int16[depthMD.XRes * depthMD.YRes];
+                    Marshal.Copy(depthMD.DepthMapPtr, depthArray, 0, depthArray.Length);
+                    for (int i = 0; i < depthArray.Length; i++)
+                    {
+                        depthArray[i] = (Int16)(0xffff - (0xffff * depthArray[i] / depth.DeviceMaxDepth));
                     }
 
-                    foreach ( SkeletonJoint s in Enum.GetValues( typeof( SkeletonJoint ) ) ) {
-                        if ( !user.SkeletonCapability.IsJointAvailable( s ) ) {
-                            continue;
+                    // 描画可能なビットマップを作る
+                    // http://stackoverflow.com/questions/831860/generate-bitmapsource-from-uielement
+                    RenderTargetBitmap bitmap =
+                        new RenderTargetBitmap(depthMD.XRes, depthMD.YRes, 96, 96, PixelFormats.Default);
+
+                    DrawingVisual drawingVisual = new DrawingVisual();
+                    using (DrawingContext drawingContext = drawingVisual.RenderOpen())
+                    {
+                        // グレースケールの描画
+                        var xtion = BitmapSource.Create(depthMD.XRes, depthMD.YRes,
+                                                        96, 96, PixelFormats.Gray16, null, depthArray,
+                                                        depthMD.XRes * depthMD.BytesPerPixel);
+                        drawingContext.DrawImage(xtion, new Rect(0, 0, depthMD.XRes, depthMD.YRes));
+
+                        // 骨格の描画
+                        var users = user.GetUsers();
+                        foreach (var u in users)
+                        {
+                            if (!user.SkeletonCapability.IsTracking(u))
+                            {
+                                continue;
+                            }
+
+                            foreach (SkeletonJoint s in Enum.GetValues(typeof(SkeletonJoint)))
+                            {
+                                if (!user.SkeletonCapability.IsJointAvailable(s))
+                                {
+                                    continue;
+                                }
+                                var joint = user.SkeletonCapability.GetSkeletonJoint(u, s);
+                                var point = depth.ConvertRealWorldToProjective(joint.Position.Position);
+                                drawingContext.DrawEllipse(new SolidColorBrush(Colors.Red),
+                                    new Pen(Brushes.Red, 1), new Point(point.X, point.Y), 5, 5);
+                            }
                         }
-                        var joint = user.SkeletonCapability.GetSkeletonJoint( u, s );
-                        var point = depth.ConvertRealWorldToProjective( joint.Position.Position );
-                        drawingContext.DrawEllipse( new SolidColorBrush( Colors.Red ),
-                            new Pen( Brushes.Red, 1 ), new Point( point.X, point.Y ), 5, 5 );
                     }
-                }
+
+                    bitmap.Render(drawingVisual);
+
+                    image1.Source = bitmap;
+                }));
             }
-
-            bitmap.Render( drawingVisual );
-
-            image1.Source = bitmap;
-        }
-
-        private WriteableBitmap DrawRgb( ImageMetaData imageMD )
-        {
-            // 描画可能なビットマップを作る
-            // http://msdn.microsoft.com/ja-jp/magazine/cc534995.aspx
-            var bitmap = new WriteableBitmap( imageMD.XRes, imageMD.YRes, 96, 96, PixelFormats.Rgb24, null );
-
-            byte[] rgb = new byte[imageMD.DataSize];
-            Marshal.Copy( imageMD.ImageMapPtr, rgb, 0, imageMD.DataSize );
-
-            var users = user.GetUserPixels( 0 );
-
-            for ( int i = 0; i < imageMD.XRes * imageMD.YRes; i++ ) {
-                if ( users[i] != 0 ) {
-                    int rgbIndex = i * imageMD.BytesPerPixel;
-                    rgb[rgbIndex] = userColor[users[i]].R;
-                    rgb[rgbIndex + 1] = userColor[users[i]].G;
-                    rgb[rgbIndex + 2] = userColor[users[i]].B;
-                }
-            }
-
-            bitmap.WritePixels( new Int32Rect( 0, 0, imageMD.XRes, imageMD.YRes ), rgb,
-                                imageMD.XRes * imageMD.BytesPerPixel, 0 );
-            return bitmap;
-        }
-
-        private void Window_Closing( object sender, System.ComponentModel.CancelEventArgs e )
-        {
-            shouldRun = false;
         }
     }
 }
