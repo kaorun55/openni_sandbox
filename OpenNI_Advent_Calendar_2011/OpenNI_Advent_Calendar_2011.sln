@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UserWPF", "UserWPF\UserWPF.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkeletonFullWPF", "SkeletonFullWPF\SkeletonFullWPF.csproj", "{91AC6527-581B-42EA-AF01-25D023158D2D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AudioBase", "AudioBase\AudioBase.csproj", "{3BBE1F03-766B-44B5-8B4B-499689302620}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x86 = Debug|x86
@@ -36,6 +38,10 @@ Global
 		{91AC6527-581B-42EA-AF01-25D023158D2D}.Debug|x86.Build.0 = Debug|x86
 		{91AC6527-581B-42EA-AF01-25D023158D2D}.Release|x86.ActiveCfg = Release|x86
 		{91AC6527-581B-42EA-AF01-25D023158D2D}.Release|x86.Build.0 = Release|x86
+		{3BBE1F03-766B-44B5-8B4B-499689302620}.Debug|x86.ActiveCfg = Debug|x86
+		{3BBE1F03-766B-44B5-8B4B-499689302620}.Debug|x86.Build.0 = Debug|x86
+		{3BBE1F03-766B-44B5-8B4B-499689302620}.Release|x86.ActiveCfg = Release|x86
+		{3BBE1F03-766B-44B5-8B4B-499689302620}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
