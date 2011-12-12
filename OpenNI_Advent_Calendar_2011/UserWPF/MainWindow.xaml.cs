@@ -33,7 +33,7 @@ namespace UserWPF
                 image = context.FindExistingNode( NodeType.Image ) as ImageGenerator;
 
                 // ユーザーの作成
-                user = new UserGenerator(context);
+                user = new UserGenerator( context );
 
                 context.StartGeneratingAll();
 
@@ -75,9 +75,8 @@ namespace UserWPF
             Marshal.Copy( imageMD.ImageMapPtr, rgb, 0, imageMD.DataSize );
 
             // ユーザーを検出したピクセルの色を変える
-            var users = user.GetUserPixels(0);
-            for (int i = 0; i < imageMD.XRes * imageMD.YRes; i++)
-            {
+            var users = user.GetUserPixels( 0 );
+            for ( int i = 0; i < imageMD.XRes * imageMD.YRes; i++ ) {
                 if ( users[i] != 0 ) {
                     int rgbIndex = i * imageMD.BytesPerPixel;
                     rgb[rgbIndex] = (byte)(rgb[rgbIndex] * userColor[users[i]].R);
@@ -89,8 +88,8 @@ namespace UserWPF
             // バイト列をビットマップに展開
             // 描画可能なビットマップを作る
             // http://msdn.microsoft.com/ja-jp/magazine/cc534995.aspx
-            var bitmap = new WriteableBitmap(imageMD.XRes, imageMD.YRes, 96, 96, PixelFormats.Rgb24, null);
-            bitmap.WritePixels(new Int32Rect(0, 0, imageMD.XRes, imageMD.YRes), rgb,
+            var bitmap = new WriteableBitmap( imageMD.XRes, imageMD.YRes, 96, 96, PixelFormats.Rgb24, null );
+            bitmap.WritePixels( new Int32Rect( 0, 0, imageMD.XRes, imageMD.YRes ), rgb,
                                 imageMD.XRes * imageMD.BytesPerPixel, 0 );
 
             image1.Source = bitmap;
