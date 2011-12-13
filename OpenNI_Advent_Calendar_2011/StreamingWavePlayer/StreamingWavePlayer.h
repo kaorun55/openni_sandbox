@@ -63,7 +63,7 @@ namespace Win32 {
 			this->!StreamingWavePlayer();
 		}
 
-		void Output( array<Byte>^ buffer )
+		void Output( IntPtr buffer, int length )
 		{
 			// バッファの取得
 			WAVEHDR* pHeader = &waveHeaders_[audioBufferNextIndex_];
@@ -71,9 +71,19 @@ namespace Win32 {
 				return;
 			}
 
-			// WAVEヘッダのクリーンアップ
-			MMRESULT mmRes = ::waveOutUnprepareHeader( *handle_, pHeader, sizeof(WAVEHDR) );
-			if ( mmRes != MMSYSERR_NOERROR ) {
+			// WAVEデータの取得
+			pHeader->dwBufferLength = length;
+			pHeader->dwFlags = 0;
+			CopyMemory( pHeader->lpData, (void*)buffer, length );
+
+			Output( pHeader );
+		}
+
+		void Output( array<Byte>^ buffer )
+		{
+			WAVEHDR* pHeader = GetBuffer();
+			if ( pHeader == 0 ) {
+				return;
 			}
 
 			// WAVEデータの取得
@@ -81,8 +91,31 @@ namespace Win32 {
 			pHeader->dwFlags = 0;
 			Marshal::Copy( buffer, 0, (IntPtr)pHeader->lpData, buffer->Length );
 
+			Output( pHeader );
+		}
+
+	private:
+
+		WAVEHDR* GetBuffer()
+		{
+			// バッファの取得
+			WAVEHDR* pHeader = &waveHeaders_[audioBufferNextIndex_];
+			if ( (pHeader->dwFlags & WHDR_DONE) == 0 ) {
+				return 0;
+			}
+
+			// WAVEヘッダのクリーンアップ
+			MMRESULT mmRes = ::waveOutUnprepareHeader( *handle_, pHeader, sizeof(WAVEHDR) );
+			if ( mmRes != MMSYSERR_NOERROR ) {
+				return 0;
+			}
+
+			return pHeader;
+		}
+
+		void Output( WAVEHDR* pHeader ) {
 			// WAVEヘッダの初期化
-			mmRes = ::waveOutPrepareHeader( *handle_, pHeader, sizeof(WAVEHDR) );
+			MMRESULT mmRes = ::waveOutPrepareHeader( *handle_, pHeader, sizeof(WAVEHDR) );
 			if ( mmRes != MMSYSERR_NOERROR ) {
 				return;
 			}

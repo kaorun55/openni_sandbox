@@ -27,9 +27,7 @@ namespace AudioBase2
 
                     Console.WriteLine( "SanpleRate    : " + audio.AudioBufferPtr + ", DataSize : " + audio.DataSize );
 
-                    byte[] buffer = new byte[audio.DataSize];
-                    Marshal.Copy(audio.AudioBufferPtr, buffer, 0, buffer.Length);
-                    wavePlayer.Output( buffer );
+                    wavePlayer.Output( audio.AudioBufferPtr, audio.DataSize );
                 }
             }
             catch ( Exception ex ) {
