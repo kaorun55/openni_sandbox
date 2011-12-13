@@ -1,7 +1,9 @@
 ﻿using System;
 using OpenNI;
+using Win32;
+using System.Runtime.InteropServices;
 
-namespace AudioBase
+namespace AudioBase2
 {
     class Program
     {
@@ -18,10 +20,16 @@ namespace AudioBase
                 Console.WriteLine( "BitsPerSample : " + audio.WaveOutputMode.BitsPerSample );
                 Console.WriteLine( "Press any key" );
 
+                StreamingWavePlayer wavePlayer = new StreamingWavePlayer( audio.WaveOutputMode.SampleRate, audio.WaveOutputMode.BitsPerSample, audio.WaveOutputMode.Channels, 100 );
+
                 while ( !Console.KeyAvailable ) {
                     context.WaitAndUpdateAll();
 
                     Console.WriteLine( "SanpleRate    : " + audio.AudioBufferPtr + ", DataSize : " + audio.DataSize );
+
+                    byte[] buffer = new byte[audio.DataSize];
+                    Marshal.Copy(audio.AudioBufferPtr, buffer, 0, buffer.Length);
+                    wavePlayer.Output( buffer );
                 }
             }
             catch ( Exception ex ) {
