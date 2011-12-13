@@ -1,11 +1,10 @@
-﻿using System.Windows;
-using System.Windows.Media;
-
-using OpenNI;
+﻿using System;
 using System.Threading;
+using System.Windows;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System;
 using System.Windows.Threading;
+using OpenNI;
 using Win32;
 
 namespace AudioWPF
