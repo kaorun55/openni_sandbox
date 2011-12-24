@@ -64,7 +64,7 @@ namespace SkeletonFullWPF
                     new EventHandler<CalibrationEndEventArgs>( skelton_CalibrationEnd );
 
                 // すべてをトラッキングする
-                user.SkeletonCapability.SetSkeletonProfile( SkeletonProfile.All );
+                user.SkeletonCapability.SetSkeletonProfile( SkeletonProfile.HeadAndHands );
 
                 // ジェスチャーの検出開始
                 context.StartGeneratingAll();
@@ -148,11 +148,16 @@ namespace SkeletonFullWPF
                     }
 
                     foreach ( SkeletonJoint s in Enum.GetValues( typeof( SkeletonJoint ) ) ) {
-                        if ( !user.SkeletonCapability.IsJointAvailable( s ) ) {
+                        if ( !user.SkeletonCapability.IsJointActive( s ) ||
+                             !user.SkeletonCapability.IsJointAvailable( s ) ) {
                             continue;
                         }
 
                         var joint = user.SkeletonCapability.GetSkeletonJoint( u, s );
+                        if ( joint.Orientation.Confidence <= 0.5 ) {
+                            continue;
+                        }
+
                         var point = depth.ConvertRealWorldToProjective( joint.Position.Position );
                         drawingContext.DrawEllipse( new SolidColorBrush( Colors.Red ),
                             new Pen( Brushes.Red, 1 ), new Point( point.X, point.Y ), 5, 5 );
