@@ -7,7 +7,7 @@
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
 
-#include <XnOpenNI.h>
+#include "C:\\Program Files (x86)\\OpenNI\\Include\\XnCppWrapper.h"
 
 #include "SkeltonDrawer.h"
 
